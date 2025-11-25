@@ -2,10 +2,11 @@ package com.example.notilogger
 
 import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.graphics.Color
+import android.content.pm.PackageManager
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.Bundle
@@ -25,6 +26,11 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.core.graphics.toColorInt
+import androidx.core.content.edit
+
+// Key used for SharedPreferences storage (MUST be defined here as well)
+//const val PREF_KEY_NOTIFICATIONS = "notification_log_key"
 
 // --- 1. Data Model ---
 data class NotificationEntry(
@@ -41,15 +47,12 @@ data class NotificationEntry(
 }
 
 class MainActivity : AppCompatActivity() {
-
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: NotificationAdapter
     private lateinit var permissionStatusText: TextView
     private lateinit var enableButton: Button
     private lateinit var clearButton: Button
-    private val TAG = "NotiLogger"
 
-    // Broadcast Receiver to update UI when a new notification is posted
     private val notificationUpdateReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == "com.example.notilogger.NEW_NOTIFICATION_EVENT") {
@@ -63,7 +66,6 @@ class MainActivity : AppCompatActivity() {
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
 
-        // Apply insets for edge-to-edge support
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main_layout)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
@@ -94,6 +96,13 @@ class MainActivity : AppCompatActivity() {
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
     override fun onResume() {
         super.onResume()
+
+        // --- NEW FIX: Re-initiate the service binding ---
+        if (isNotificationServiceEnabled()) {
+            toggleNotificationListenerService()
+        }
+        // ------------------------------------------------
+
         checkPermissionStatus()
         loadAndDisplayLogs()
 
@@ -101,7 +110,7 @@ class MainActivity : AppCompatActivity() {
         val intentFilter = IntentFilter("com.example.notilogger.NEW_NOTIFICATION_EVENT")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             // Use RECEIVER_EXPORTED for apps targeting API 33+
-            registerReceiver(notificationUpdateReceiver, intentFilter, Context.RECEIVER_EXPORTED)
+            registerReceiver(notificationUpdateReceiver, intentFilter, RECEIVER_EXPORTED)
         } else {
             // Fallback for older Android versions
             @Suppress("DEPRECATION")
@@ -115,23 +124,21 @@ class MainActivity : AppCompatActivity() {
         unregisterReceiver(notificationUpdateReceiver)
     }
 
+    @SuppressLint("SetTextI18n")
     private fun checkPermissionStatus() {
         if (isNotificationServiceEnabled()) {
             permissionStatusText.text = "Status: Listening for notifications."
-            // Use programmatic rounded background with green color
-            setStatusBarBackground(Color.parseColor("#81C784")) // Green: Success
+            setStatusBarBackground("#81C784".toColorInt()) // Green: Success
             enableButton.visibility = View.GONE
             clearButton.visibility = View.VISIBLE
         } else {
             permissionStatusText.text = "Status: ACCESS REQUIRED. Tap below."
-            // Use programmatic rounded background with red color
-            setStatusBarBackground(Color.parseColor("#E57373")) // Red: Warning
+            setStatusBarBackground("#E57373".toColorInt()) // Red: Warning
             enableButton.visibility = View.VISIBLE
             clearButton.visibility = View.GONE
         }
     }
 
-    // Creates a rounded background drawable programmatically
     private fun setStatusBarBackground(color: Int) {
         val drawable = GradientDrawable()
         drawable.shape = GradientDrawable.RECTANGLE
@@ -149,15 +156,38 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun requestNotificationPermission() {
-        // Directs the user to the system settings page to grant Notification Access
         val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
         startActivity(intent)
+    }
+
+    // --- NEW FIX FUNCTION ---
+    /**
+     * This method is a common workaround to force the Android system to re-bind
+     * the NotificationListenerService after it has been explicitly killed
+     * (e.g., via Task Manager or RAM Cleaner).
+     * It temporarily disables and re-enables the component via package manager flags.
+     */
+    private fun toggleNotificationListenerService() {
+        val pm = packageManager
+        pm.setComponentEnabledSetting(
+            // Use the full package name and class name of the listener service
+            ComponentName(this, NotificationLogService::class.java),
+            // Temporarily disable the service
+            PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+            PackageManager.DONT_KILL_APP
+        )
+        pm.setComponentEnabledSetting(
+            // Re-enable the service
+            ComponentName(this, NotificationLogService::class.java),
+            PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+            PackageManager.DONT_KILL_APP
+        )
     }
 
     // --- Persistence (Load/Clear) ---
 
     private fun loadNotificationLogs(): List<NotificationEntry> {
-        val prefs = getSharedPreferences(PREF_KEY_NOTIFICATIONS, Context.MODE_PRIVATE)
+        val prefs = getSharedPreferences(PREF_KEY_NOTIFICATIONS, MODE_PRIVATE)
         val json = prefs.getString(PREF_KEY_NOTIFICATIONS, null)
         val gson = Gson()
         val type = object : TypeToken<List<NotificationEntry>>() {}.type
@@ -175,10 +205,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun clearLogs() {
-        getSharedPreferences(PREF_KEY_NOTIFICATIONS, Context.MODE_PRIVATE)
-            .edit()
-            .remove(PREF_KEY_NOTIFICATIONS)
-            .apply()
+        getSharedPreferences(PREF_KEY_NOTIFICATIONS, MODE_PRIVATE)
+            .edit {
+                remove(PREF_KEY_NOTIFICATIONS)
+            }
         loadAndDisplayLogs()
     }
 
@@ -187,6 +217,7 @@ class MainActivity : AppCompatActivity() {
 
     private class NotificationAdapter(private val logList: MutableList<NotificationEntry>) :
         RecyclerView.Adapter<NotificationAdapter.LogViewHolder>() {
+        // ... (LogViewHolder and other methods are unchanged)
 
         class LogViewHolder(view: View) : RecyclerView.ViewHolder(view) {
             val appName: TextView = view.findViewById(R.id.tv_app_name)
@@ -211,6 +242,7 @@ class MainActivity : AppCompatActivity() {
 
         override fun getItemCount() = logList.size
 
+        @SuppressLint("NotifyDataSetChanged")
         fun updateData(newLogs: List<NotificationEntry>) {
             logList.clear()
             logList.addAll(newLogs)

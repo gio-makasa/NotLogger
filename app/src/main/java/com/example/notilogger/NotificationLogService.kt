@@ -1,15 +1,23 @@
 package com.example.notilogger
 
+import android.annotation.SuppressLint
 import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
+import androidx.core.app.NotificationCompat
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import java.text.SimpleDateFormat
-import java.util.*
+import androidx.core.content.edit
+
+// --- Constants for Foreground Service ---
+private const val NOTIFICATION_CHANNEL_ID = "NotiLoggerServiceChannel"
+private const val NOTIFICATION_ID = 101 // Unique ID for the persistent notification
 
 // Key used for SharedPreferences storage
 const val PREF_KEY_NOTIFICATIONS = "notification_log_key"
@@ -18,12 +26,62 @@ class NotificationLogService : NotificationListenerService() {
 
     private val TAG = "NotiLoggerService"
 
-    // Helper function to get the app's display name from its package name
+    @SuppressLint("ForegroundServiceType")
+    override fun onCreate() {
+        super.onCreate()
+        // 1. Create the notification channel (required for Android O and above)
+        createNotificationChannel()
+
+        // 2. Build the persistent notification
+        val notification = buildForegroundNotification()
+
+        // 3. Start the service in the foreground
+        startForeground(NOTIFICATION_ID, notification)
+        Log.d(TAG, "NotificationLogService started in foreground.")
+    }
+
+    // --- NEW ADDITION: Ensure the service restarts after a hard kill ---
+    @SuppressLint("ForegroundServiceType")
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        Log.d(TAG, "onStartCommand called. Returning START_STICKY for resilience.")
+        // Ensure the service is in the foreground upon restart,
+        // though onCreate usually handles this on a cold restart.
+        val notification = buildForegroundNotification()
+        startForeground(NOTIFICATION_ID, notification)
+
+        // START_STICKY tells the OS: "If I am killed by the OS, please try to restart me
+        // as soon as resources are available."
+        return START_STICKY
+    }
+    // ------------------------------------------------------------------
+
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val serviceChannel = NotificationChannel(
+                NOTIFICATION_CHANNEL_ID,
+                "Notification Logger Service",
+                NotificationManager.IMPORTANCE_LOW
+            )
+            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            manager.createNotificationChannel(serviceChannel)
+        }
+    }
+
+    private fun buildForegroundNotification(): Notification {
+        return NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
+            .setContentTitle("Notification Logger Active")
+            .setContentText("Listening for incoming notifications in the background.")
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setOngoing(true)
+            .build()
+    }
+
     private fun getAppName(packageName: String): String {
         return try {
             val applicationInfo = packageManager.getApplicationInfo(packageName, 0)
             packageManager.getApplicationLabel(applicationInfo).toString()
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             packageName
         }
     }
@@ -38,9 +96,7 @@ class NotificationLogService : NotificationListenerService() {
 
             // 1. Extract Data
             val appName = getAppName(packageName)
-            // EXTRA_TITLE is the main title (e.g., Sender Name)
             val senderTitle = extras.getString(Notification.EXTRA_TITLE) ?: "System Notification"
-            // EXTRA_TEXT is the content of the notification
             val content = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString() ?: ""
 
             val newEntry = NotificationEntry(
@@ -62,13 +118,11 @@ class NotificationLogService : NotificationListenerService() {
 
     override fun onNotificationRemoved(sbn: StatusBarNotification?) {
         super.onNotificationRemoved(sbn)
-        // You could handle logging removed notifications here if necessary
         Log.d(TAG, "Removed: ${sbn?.packageName}")
     }
 
-    // Persistence Logic using SharedPreferences and GSON
     private fun saveNotification(newEntry: NotificationEntry) {
-        val prefs = getSharedPreferences(PREF_KEY_NOTIFICATIONS, Context.MODE_PRIVATE)
+        val prefs = getSharedPreferences(PREF_KEY_NOTIFICATIONS, MODE_PRIVATE)
         val gson = Gson()
 
         // 1. Load existing list
@@ -90,6 +144,6 @@ class NotificationLogService : NotificationListenerService() {
 
         // 3. Save the updated list
         val updatedJson = gson.toJson(logList)
-        prefs.edit().putString(PREF_KEY_NOTIFICATIONS, updatedJson).apply()
+        prefs.edit { putString(PREF_KEY_NOTIFICATIONS, updatedJson) }
     }
 }
