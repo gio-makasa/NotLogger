@@ -1,4 +1,4 @@
 <resources>
-    <string name="app_name">NotiLogger</string>
+    <string name="app_name">Nolo</string>
     <string name="service_name">Notification Logger Service</string>
 </resources>

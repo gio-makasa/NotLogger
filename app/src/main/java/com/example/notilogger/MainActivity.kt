@@ -27,7 +27,6 @@ import com.google.gson.reflect.TypeToken
 import java.text.SimpleDateFormat
 import java.util.*
 import androidx.core.graphics.toColorInt
-import androidx.core.content.edit
 
 // Key used for SharedPreferences storage (MUST be defined here as well)
 //const val PREF_KEY_NOTIFICATIONS = "notification_log_key"
@@ -51,7 +50,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var adapter: NotificationAdapter
     private lateinit var permissionStatusText: TextView
     private lateinit var enableButton: Button
-    private lateinit var clearButton: Button
 
     private val notificationUpdateReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -75,7 +73,6 @@ class MainActivity : AppCompatActivity() {
         // Initialize UI components
         permissionStatusText = findViewById(R.id.permission_status)
         enableButton = findViewById(R.id.enable_button)
-        clearButton = findViewById(R.id.clear_button)
         recyclerView = findViewById(R.id.log_recycler_view)
 
         // Setup RecyclerView
@@ -87,21 +84,15 @@ class MainActivity : AppCompatActivity() {
         enableButton.setOnClickListener {
             requestNotificationPermission()
         }
-
-        clearButton.setOnClickListener {
-            clearLogs()
-        }
     }
 
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
     override fun onResume() {
         super.onResume()
 
-        // --- NEW FIX: Re-initiate the service binding ---
         if (isNotificationServiceEnabled()) {
             toggleNotificationListenerService()
         }
-        // ------------------------------------------------
 
         checkPermissionStatus()
         loadAndDisplayLogs()
@@ -127,15 +118,13 @@ class MainActivity : AppCompatActivity() {
     @SuppressLint("SetTextI18n")
     private fun checkPermissionStatus() {
         if (isNotificationServiceEnabled()) {
-            permissionStatusText.text = "Status: Listening for notifications."
+            permissionStatusText.text = "Status: Listening for notifications. \n To make sure the app works correctly allow auto-start."
             setStatusBarBackground("#81C784".toColorInt()) // Green: Success
             enableButton.visibility = View.GONE
-            clearButton.visibility = View.VISIBLE
         } else {
             permissionStatusText.text = "Status: ACCESS REQUIRED. Tap below."
             setStatusBarBackground("#E57373".toColorInt()) // Red: Warning
             enableButton.visibility = View.VISIBLE
-            clearButton.visibility = View.GONE
         }
     }
 
@@ -160,13 +149,6 @@ class MainActivity : AppCompatActivity() {
         startActivity(intent)
     }
 
-    // --- NEW FIX FUNCTION ---
-    /**
-     * This method is a common workaround to force the Android system to re-bind
-     * the NotificationListenerService after it has been explicitly killed
-     * (e.g., via Task Manager or RAM Cleaner).
-     * It temporarily disables and re-enables the component via package manager flags.
-     */
     private fun toggleNotificationListenerService() {
         val pm = packageManager
         pm.setComponentEnabledSetting(
@@ -202,14 +184,6 @@ class MainActivity : AppCompatActivity() {
     private fun loadAndDisplayLogs() {
         val logs = loadNotificationLogs()
         adapter.updateData(logs)
-    }
-
-    private fun clearLogs() {
-        getSharedPreferences(PREF_KEY_NOTIFICATIONS, MODE_PRIVATE)
-            .edit {
-                remove(PREF_KEY_NOTIFICATIONS)
-            }
-        loadAndDisplayLogs()
     }
 
 
