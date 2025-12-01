@@ -30,6 +30,7 @@ import androidx.core.graphics.toColorInt
 
 // Key used for SharedPreferences storage (MUST be defined here as well)
 //const val PREF_KEY_NOTIFICATIONS = "notification_log_key"
+const val EXTRA_APP_NAME_FILTER = "com.example.notilogger.APP_NAME_FILTER"
 
 // --- 1. Data Model ---
 data class NotificationEntry(
@@ -76,7 +77,11 @@ class MainActivity : AppCompatActivity() {
         recyclerView = findViewById(R.id.log_recycler_view)
 
         // Setup RecyclerView
-        adapter = NotificationAdapter(mutableListOf())
+        adapter = NotificationAdapter(mutableListOf()) { entry ->
+            val intent = Intent(this, LogsByAppActivity::class.java)
+            intent.putExtra(EXTRA_APP_NAME_FILTER, entry.appName)
+            startActivity(intent)
+        }
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = adapter
 
@@ -183,14 +188,15 @@ class MainActivity : AppCompatActivity() {
 
     private fun loadAndDisplayLogs() {
         val logs = loadNotificationLogs()
-//        val uniqueLogs = logs.distinctBy { it.appName }
-        adapter.updateData(logs)
+        val uniqueLogs = logs.distinctBy { it.appName }
+        adapter.updateData(uniqueLogs)
     }
 
 
     // --- 2. Adapter Class ---
 
-    private class NotificationAdapter(private val logList: MutableList<NotificationEntry>) :
+     class NotificationAdapter(private val logList: MutableList<NotificationEntry>,
+                                      private val clickListener: (NotificationEntry) -> Unit ) :
         RecyclerView.Adapter<NotificationAdapter.LogViewHolder>() {
 
         class LogViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -212,6 +218,10 @@ class MainActivity : AppCompatActivity() {
             holder.senderTitle.text = entry.senderTitle
             holder.content.text = entry.content
             holder.timestamp.text = entry.getFormattedTime()
+
+            holder.itemView.setOnClickListener {
+                clickListener(entry)
+            }
         }
 
         override fun getItemCount() = logList.size

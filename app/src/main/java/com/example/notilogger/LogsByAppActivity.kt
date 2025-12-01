@@ -1,0 +1,78 @@
+package com.example.notilogger
+
+import android.content.Intent
+import android.os.Bundle
+import android.widget.TextView
+import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.graphics.toColorInt
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.example.notilogger.MainActivity.NotificationAdapter
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+
+class LogsByAppActivity : AppCompatActivity() {
+    private lateinit var recyclerView: RecyclerView
+    private lateinit var adapter: NotificationAdapter
+    private lateinit var permissionStatusText: TextView
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        setContentView(R.layout.activity_main)
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main_layout)) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            insets
+        }
+
+        permissionStatusText = findViewById(R.id.permission_status)
+
+        permissionStatusText.text = intent.getStringExtra(EXTRA_APP_NAME_FILTER)
+        permissionStatusText.setTextColor("black".toColorInt())
+        permissionStatusText.background = null
+
+
+
+        recyclerView = findViewById(R.id.log_recycler_view)
+
+
+        adapter = NotificationAdapter(mutableListOf()) { entry ->
+            val intent = Intent(this, LogsByAppActivity::class.java)
+            intent.putExtra(EXTRA_APP_NAME_FILTER, entry.appName)
+            startActivity(intent)
+        }
+        recyclerView.layoutManager = LinearLayoutManager(this)
+        recyclerView.adapter = adapter
+
+        loadAndDisplayLogs()
+    }
+
+    override fun onResume() {
+        super.onResume()
+
+        loadAndDisplayLogs()
+    }
+
+    private fun loadNotificationLogs(): List<NotificationEntry> {
+        val prefs = getSharedPreferences(PREF_KEY_NOTIFICATIONS, MODE_PRIVATE)
+        val json = prefs.getString(PREF_KEY_NOTIFICATIONS, null)
+        val gson = Gson()
+        val type = object : TypeToken<List<NotificationEntry>>() {}.type
+
+        return if (json != null) {
+            gson.fromJson(json, type)
+        } else {
+            emptyList()
+        }
+    }
+
+    private fun loadAndDisplayLogs() {
+        val logs = loadNotificationLogs()
+        val uniqueLogs = logs.filter { it.appName == intent.getStringExtra(EXTRA_APP_NAME_FILTER) }
+        adapter.updateData(uniqueLogs)
+    }
+}
