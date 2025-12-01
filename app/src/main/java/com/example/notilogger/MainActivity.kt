@@ -166,7 +166,7 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-    // --- Persistence (Load/Clear) ---
+    // --- Persistence (Load) ---
 
     private fun loadNotificationLogs(): List<NotificationEntry> {
         val prefs = getSharedPreferences(PREF_KEY_NOTIFICATIONS, MODE_PRIVATE)
@@ -183,6 +183,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun loadAndDisplayLogs() {
         val logs = loadNotificationLogs()
+//        val uniqueLogs = logs.distinctBy { it.appName }
         adapter.updateData(logs)
     }
 
@@ -191,7 +192,6 @@ class MainActivity : AppCompatActivity() {
 
     private class NotificationAdapter(private val logList: MutableList<NotificationEntry>) :
         RecyclerView.Adapter<NotificationAdapter.LogViewHolder>() {
-        // ... (LogViewHolder and other methods are unchanged)
 
         class LogViewHolder(view: View) : RecyclerView.ViewHolder(view) {
             val appName: TextView = view.findViewById(R.id.tv_app_name)

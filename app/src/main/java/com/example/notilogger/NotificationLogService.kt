@@ -9,7 +9,6 @@ import android.content.Intent
 import android.os.Build
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
-import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -24,8 +23,6 @@ const val PREF_KEY_NOTIFICATIONS = "notification_log_key"
 
 class NotificationLogService : NotificationListenerService() {
 
-    private val TAG = "NotiLoggerService"
-
     @SuppressLint("ForegroundServiceType")
     override fun onCreate() {
         super.onCreate()
@@ -37,23 +34,15 @@ class NotificationLogService : NotificationListenerService() {
 
         // 3. Start the service in the foreground
         startForeground(NOTIFICATION_ID, notification)
-        Log.d(TAG, "NotificationLogService started in foreground.")
     }
 
-    // --- NEW ADDITION: Ensure the service restarts after a hard kill ---
     @SuppressLint("ForegroundServiceType")
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Log.d(TAG, "onStartCommand called. Returning START_STICKY for resilience.")
-        // Ensure the service is in the foreground upon restart,
-        // though onCreate usually handles this on a cold restart.
         val notification = buildForegroundNotification()
         startForeground(NOTIFICATION_ID, notification)
 
-        // START_STICKY tells the OS: "If I am killed by the OS, please try to restart me
-        // as soon as resources are available."
         return START_STICKY
     }
-    // ------------------------------------------------------------------
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -77,10 +66,27 @@ class NotificationLogService : NotificationListenerService() {
             .build()
     }
 
+    data class InstalledApp(
+        val label: String,
+        val packageName: String
+    )
+
+    @SuppressLint("QueryPermissionsNeeded")
+    fun getInstalledApps(): List<InstalledApp> {
+        val pm = packageManager
+        val apps = pm.getInstalledApplications(0)
+
+        return apps.map { appInfo ->
+            val label = pm.getApplicationLabel(appInfo).toString().trim()
+                .takeIf { !it.isNullOrEmpty() } ?: appInfo.packageName
+
+            InstalledApp(label, appInfo.packageName)
+        }
+    }
+
     private fun getAppName(packageName: String): String {
         return try {
-            val applicationInfo = packageManager.getApplicationInfo(packageName, 0)
-            packageManager.getApplicationLabel(applicationInfo).toString()
+            getInstalledApps().find { it.packageName == packageName }?.label.toString()
         } catch (_: Exception) {
             packageName
         }
@@ -106,8 +112,6 @@ class NotificationLogService : NotificationListenerService() {
                 timestamp = postTime
             )
 
-            Log.d(TAG, "Posted: $newEntry")
-
             // 2. Save Data
             saveNotification(newEntry)
 
@@ -118,7 +122,6 @@ class NotificationLogService : NotificationListenerService() {
 
     override fun onNotificationRemoved(sbn: StatusBarNotification?) {
         super.onNotificationRemoved(sbn)
-        Log.d(TAG, "Removed: ${sbn?.packageName}")
     }
 
     private fun saveNotification(newEntry: NotificationEntry) {
