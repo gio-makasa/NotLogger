@@ -7,6 +7,7 @@ import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.os.Bundle
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import androidx.core.app.NotificationCompat
@@ -92,6 +93,31 @@ class NotificationLogService : NotificationListenerService() {
         }
     }
 
+    private fun extractFullContent(extras: Bundle): String {
+        val parts = mutableListOf<String>()
+
+        extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.let {
+            parts.add(it.toString())
+        }
+
+        extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)?.let { arr ->
+            parts.addAll(arr.map { it.toString() })
+        }
+
+        extras.getParcelableArray(Notification.EXTRA_MESSAGES)?.let { arr ->
+            arr.forEach { obj ->
+                try {
+                    val b = obj as Bundle
+                    val text = b.getString("text")
+                    if (!text.isNullOrBlank()) parts.add(text)
+                } catch (_: Exception) {}
+            }
+        }
+
+        return parts.joinToString("\n").ifBlank { extras.getCharSequence(Notification.EXTRA_TEXT)?.toString() ?: "can't read context" }
+    }
+
+
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         super.onNotificationPosted(sbn)
 
@@ -104,11 +130,13 @@ class NotificationLogService : NotificationListenerService() {
             val appName = getAppName(packageName)
             val senderTitle = extras.getString(Notification.EXTRA_TITLE) ?: "System Notification"
             val content = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString() ?: ""
+            val fullContent = extractFullContent(extras)
 
             val newEntry = NotificationEntry(
                 appName = appName,
                 senderTitle = senderTitle,
                 content = content,
+                fullContent = fullContent,
                 timestamp = postTime
             )
 

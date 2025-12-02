@@ -44,7 +44,7 @@ class LogsByAppActivity : AppCompatActivity() {
             // Populate the TextViews in the custom dialog view
             dialogView.findViewById<TextView>(R.id.dialog_app_name).text = entry.appName
             dialogView.findViewById<TextView>(R.id.dialog_sender_title).text = entry.senderTitle ?: "No Title"
-            dialogView.findViewById<TextView>(R.id.dialog_content).text = entry.content ?: "No Content"
+            dialogView.findViewById<TextView>(R.id.dialog_content).text = entry.fullContent ?: "No Content"
             dialogView.findViewById<TextView>(R.id.dialog_timestamp).text = entry.getFormattedTime()
 
             AlertDialog.Builder(this)

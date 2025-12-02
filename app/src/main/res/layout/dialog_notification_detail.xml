@@ -12,7 +12,7 @@
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="500dp"
         android:orientation="vertical"
         android:padding="12dp">
 
@@ -53,16 +53,27 @@
             android:textStyle="bold"
             tools:text="John Doe" />
 
-        <!-- Content/Text -->
-        <TextView
-            android:id="@+id/dialog_content"
+        <ScrollView
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textColor="#555555"
-            android:textSize="14sp"
-            android:maxLines="3"
-            android:ellipsize="end"
-            tools:text="Hey, can you send over the final report by 5 PM today? We need to review it before the meeting." />
+            android:layout_height="match_parent"
+            android:fillViewport="true">
+
+            <LinearLayout
+                android:orientation="vertical"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="16dp">
+
+                <TextView
+                    android:id="@+id/dialog_content"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="#555555"
+                    android:textSize="14sp"
+                    android:ellipsize="end"
+                    tools:text="Hey, can you send over the final report by 5 PM today? We need to review it before the meeting." />
+            </LinearLayout>
+        </ScrollView>
 
     </LinearLayout>
 </androidx.cardview.widget.CardView>

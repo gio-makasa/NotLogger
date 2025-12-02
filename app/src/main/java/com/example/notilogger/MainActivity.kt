@@ -37,6 +37,7 @@ data class NotificationEntry(
     val appName: String,
     val senderTitle: String,
     val content: String,
+    val fullContent: String,
     val timestamp: Long
 ) {
     // Formats the timestamp for display
