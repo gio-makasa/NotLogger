@@ -122,6 +122,12 @@ class NotificationLogService : NotificationListenerService() {
         super.onNotificationPosted(sbn)
 
         sbn?.let { notification ->
+
+            // 🚫 Skip ongoing / non-removable notifications
+            if (!notification.isClearable) {
+                return
+            }
+
             val extras = notification.notification.extras
             val packageName = notification.packageName
             val postTime = notification.postTime
