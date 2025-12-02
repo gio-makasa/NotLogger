@@ -2,8 +2,10 @@ package com.example.notilogger
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.graphics.toColorInt
 import androidx.core.view.ViewCompat
@@ -30,20 +32,24 @@ class LogsByAppActivity : AppCompatActivity() {
         }
 
         permissionStatusText = findViewById(R.id.permission_status)
+        recyclerView = findViewById(R.id.log_recycler_view)
 
         permissionStatusText.text = intent.getStringExtra(EXTRA_APP_NAME_FILTER)
         permissionStatusText.setTextColor("black".toColorInt())
         permissionStatusText.background = null
 
-
-
-        recyclerView = findViewById(R.id.log_recycler_view)
-
-
         adapter = NotificationAdapter(mutableListOf()) { entry ->
-            val intent = Intent(this, LogsByAppActivity::class.java)
-            intent.putExtra(EXTRA_APP_NAME_FILTER, entry.appName)
-            startActivity(intent)
+            val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_notification_detail, null)
+
+            // Populate the TextViews in the custom dialog view
+            dialogView.findViewById<TextView>(R.id.dialog_app_name).text = entry.appName
+            dialogView.findViewById<TextView>(R.id.dialog_sender_title).text = entry.senderTitle ?: "No Title"
+            dialogView.findViewById<TextView>(R.id.dialog_content).text = entry.content ?: "No Content"
+            dialogView.findViewById<TextView>(R.id.dialog_timestamp).text = entry.getFormattedTime()
+
+            AlertDialog.Builder(this)
+                .setView(dialogView)
+                .show()
         }
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = adapter
@@ -53,7 +59,6 @@ class LogsByAppActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-
         loadAndDisplayLogs()
     }
 
