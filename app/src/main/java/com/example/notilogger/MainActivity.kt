@@ -8,6 +8,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.LayerDrawable
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -125,21 +126,25 @@ class MainActivity : AppCompatActivity() {
     private fun checkPermissionStatus() {
         if (isNotificationServiceEnabled()) {
             permissionStatusText.text = "Status: Listening for notifications. \n To make sure the app works correctly allow auto-start."
-            setStatusBarBackground("#81C784".toColorInt()) // Green: Success
+            setStatusBarBackground(1) // Green: Success
             enableButton.visibility = View.GONE
         } else {
             permissionStatusText.text = "Status: ACCESS REQUIRED. Tap below."
-            setStatusBarBackground("#E57373".toColorInt()) // Red: Warning
+            setStatusBarBackground(0) // Red: Warning
             enableButton.visibility = View.VISIBLE
         }
     }
 
-    private fun setStatusBarBackground(color: Int) {
-        val drawable = GradientDrawable()
-        drawable.shape = GradientDrawable.RECTANGLE
-        drawable.cornerRadius = 8f
-        drawable.setColor(color)
-        permissionStatusText.background = drawable
+    private fun setStatusBarBackground(access: Int) {
+        if (access == 1) {
+            val layer = permissionStatusText.background as LayerDrawable
+            val gradient = layer.getDrawable(1) as GradientDrawable
+            gradient.colors = intArrayOf("#8000FF00".toColorInt(), "#600b131a".toColorInt(), "#4500FF00".toColorInt())
+        } else {
+            val layer = permissionStatusText.background as LayerDrawable
+            val gradient = layer.getDrawable(1) as GradientDrawable
+            gradient.colors = intArrayOf("#80FF0000".toColorInt(), "#600b131a".toColorInt(), "#45FF0000".toColorInt())
+        }
     }
 
     // --- Permission Check and Request ---

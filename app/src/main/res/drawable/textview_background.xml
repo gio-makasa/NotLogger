@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android"
+    android:tintMode="src_atop">
+
+    <!-- 1) Soft shadow / backdrop (slightly larger, behind) -->
+    <item android:top="2dp" android:left="2dp" android:right="2dp" android:bottom="2dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#0b131a"/>
+            <corners android:radius="16dp"/>
+        </shape>
+    </item>
+
+    <!-- 2) Main translucent glass body -->
+    <item>
+        <shape android:shape="rectangle">
+            <!-- semi-transparent white/bluish glass base -->
+            <gradient
+                android:startColor="#80FF0000"
+                android:centerColor="#600b131a"
+                android:endColor="#45FF0000"
+                android:angle="270"
+                android:type="linear" />
+            <corners android:radius="16dp"/>
+        </shape>
+    </item>
+
+    <!-- 3) Inner dark vignette (gives depth / inner shadow) -->
+    <item android:top="2dp" android:left="2dp" android:right="2dp" android:bottom="2dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#69000000"/> <!-- very subtle darkening -->
+            <corners android:radius="14dp"/>
+        </shape>
+    </item>
+
+    <!-- 4) Tiny bright rim at top edge to simulate refraction -->
+    <item android:top="1dp" android:left="1dp" android:right="1dp" android:bottom="1dp">
+        <shape android:shape="rectangle">
+            <size android:height="2dp"/>
+            <solid android:color="#950b131a"/>
+            <corners android:radius="14dp"/>
+        </shape>
+    </item>
+</layer-list>

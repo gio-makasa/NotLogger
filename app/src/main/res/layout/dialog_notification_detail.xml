@@ -11,6 +11,7 @@
     android:backgroundTint="@android:color/white">
 
     <LinearLayout
+        android:background="@drawable/log_item"
         android:layout_width="match_parent"
         android:layout_height="500dp"
         android:orientation="vertical"
@@ -37,7 +38,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_alignParentEnd="true"
-                android:textColor="#757575"
+                android:textColor="#FFF"
                 android:textSize="12sp"
                 tools:text="Nov 22, 2025 10:30:45" />
         </RelativeLayout>
@@ -48,7 +49,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="4dp"
-            android:textColor="#333333"
+            android:textColor="#FFF"
             android:textSize="16sp"
             android:textStyle="bold"
             tools:text="John Doe" />
@@ -68,7 +69,7 @@
                     android:id="@+id/dialog_content"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textColor="#555555"
+                    android:textColor="#FFF"
                     android:textSize="14sp"
                     android:ellipsize="end"
                     tools:text="Hey, can you send over the final report by 5 PM today? We need to review it before the meeting." />

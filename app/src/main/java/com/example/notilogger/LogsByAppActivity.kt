@@ -35,7 +35,9 @@ class LogsByAppActivity : AppCompatActivity() {
         recyclerView = findViewById(R.id.log_recycler_view)
 
         permissionStatusText.text = intent.getStringExtra(EXTRA_APP_NAME_FILTER)
-        permissionStatusText.setTextColor("black".toColorInt())
+        permissionStatusText.setTextColor("cyan".toColorInt())
+        permissionStatusText.setShadowLayer(9f, 0f, 0f, "cyan".toColorInt())
+        permissionStatusText.textSize = 20f
         permissionStatusText.background = null
 
         adapter = NotificationAdapter(mutableListOf()) { entry ->
