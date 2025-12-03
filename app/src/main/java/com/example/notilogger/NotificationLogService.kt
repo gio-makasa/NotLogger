@@ -174,11 +174,6 @@ class NotificationLogService : NotificationListenerService() {
         // 2. Add new entry at the start (most recent first)
         logList.add(0, newEntry)
 
-        // Limit the list size to prevent excessive storage (e.g., 500 entries)
-        while (logList.size > 500) {
-            logList.removeAt(logList.size - 1)
-        }
-
         // 3. Save the updated list
         val updatedJson = gson.toJson(logList)
         prefs.edit { putString(PREF_KEY_NOTIFICATIONS, updatedJson) }
